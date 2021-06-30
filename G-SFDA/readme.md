@@ -1,0 +1,13 @@
+# Code for VisDA
+
+## Dataset preparing
+Download the [VisDA](https://github.com/VisionLearningGroup/taskcv-2017-public/tree/master/classification) dataset. And denote the path of data list in the code.
+
+
+## Training
+First train the model on source data with both source and target attention, then adapt the model to target domain in absence of source data. We use embedding layer to automatically produce the domain attention.
+> sh visda.sh  
+
+
+## Domain Classifier
+The file 'domain_classifier.ipynb' contains the code for training domain classifier and evaluating the model with estimated domain ID (on VisDA).
