@@ -1,5 +1,5 @@
 # G-SFDA
-code for Generalized Source-free Domain Adaptation
+code for paper Generalized Source-free Domain Adaptation
 
 ## Generalized Source-free Domain Adaptation
 
