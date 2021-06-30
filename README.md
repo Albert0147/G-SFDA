@@ -1,0 +1,10 @@
+# G-SFDA
+code for Generalized Source-free Domain Adaptation
+
+## Generalized Source-free Domain Adaptation
+
+In G-SFDA folder you can find the code for G-SFDA setting, on Office-Home and VisDA
+
+## Continual Source-free Domain Adaptation
+
+In Continual_SFDA folder, you can find the code for continual SFDA, where the source mdoel is adapted to a sequence of target domain and expeceted to keep good performance on all old domains.
