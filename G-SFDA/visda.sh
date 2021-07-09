@@ -1,3 +1,3 @@
-python train_src.py
+python train_src_visda.py
 
-python train_tar.py
+python train_tar_visda.py
