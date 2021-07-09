@@ -51,10 +51,10 @@ def train_target_near(args):
     optimizer = optim.SGD([{
         'params': netF.bottle.parameters(),
         'lr': args.lr * 10
-    }, #{  # Training or not does not matter
-    #    'params': netF.em.parameters(),
-    #    'lr': args.lr * 10
-    #},
+    }, {  
+        'params': netF.em.parameters(), # Training or not does not matter
+        'lr': args.lr * 10
+    },
     {
         'params': netF.bn.parameters(),
         'lr': args.lr * 10
