@@ -358,8 +358,8 @@ if __name__ == "__main__":
                         type=str,
                         default="bn",
                         choices=["ori", "bn"])
-    parser.add_argument('--output', type=str, default='hat/target/')
-    parser.add_argument('--output_src', type=str, default='hat/source/')
+    parser.add_argument('--output', type=str, default='visda/target/')
+    parser.add_argument('--output_src', type=str, default='visda/source/')
     parser.add_argument('--da',
                         type=str,
                         default='uda')
