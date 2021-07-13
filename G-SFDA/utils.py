@@ -280,50 +280,8 @@ class ImageList(Dataset):
 
 
 def office_load(args):
-    train_bs = args.batch_size
-    if args.office31 == True:# and not args.home and not args.visda:
-        ss = args.dset.split('2')[0]
-        tt = args.dset.split('2')[1]
-        if ss == 'a':
-            s = 'amazon'
-        elif ss == 'd':
-            s = 'dslr'
-        elif ss == 'w':
-            s = 'webcam'
-
-        if tt == 'a':
-            t = 'amazon'
-        elif tt == 'd':
-            t = 'dslr'
-        elif tt == 'w':
-            t = 'webcam'
-
-
-        s_tr, s_ts = './data/office/{}_list.txt'.format(
-            s), './data/office/{}_list.txt'.format(s)
-
-        txt_src = open(s_tr).readlines()
-        dsize = len(txt_src)
-        tv_size = int(0.8 * dsize)
-        print(dsize, tv_size, dsize - tv_size)
-        s_tr, s_ts = torch.utils.data.random_split(txt_src,
-                                                   [tv_size, dsize - tv_size])
-
-        t_tr, t_ts = './data/office/{}_list.txt'.format(
-            t), './data/office/{}_list.txt'.format(t)
-        prep_dict = {}
-        prep_dict['source'] = image_train()
-        prep_dict['target'] = image_target()
-        prep_dict['test'] = image_test()
-        train_source = ImageList(s_tr, transform=prep_dict['source'])
-        test_source = ImageList(s_tr, transform=prep_dict['source'])
-        train_target = ImageList(open(t_tr).readlines(),
-                                 transform=prep_dict['target'])
-        test_target = ImageList(open(t_ts).readlines(),
-                                transform=prep_dict['test'])
-
-    
-    elif args.home == True and not args.office31 and not args.visda:
+    train_bs = args.batch_size  
+    if args.home == True:
         ss = args.dset.split('2')[0]
         tt = args.dset.split('2')[1]
         if ss == 'a':
