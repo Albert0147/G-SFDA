@@ -1,5 +1,5 @@
 # G-SFDA
-code for paper Generalized Source-free Domain Adaptation
+Code (based on pytorch 1.3) for paper Generalized Source-free Domain Adaptation
 
 ## Generalized Source-free Domain Adaptation
 
