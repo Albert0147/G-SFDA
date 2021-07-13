@@ -25,8 +25,118 @@ def print_args(args):
     return s
 
 
+class ImageList_idx(Dataset):
+    def __init__(self,
+                 image_list,
+                 labels=None,
+                 transform=None,
+                 target_transform=None,
+                 mode='RGB'):
+        imgs = make_dataset(image_list, labels)
+
+        self.imgs = imgs
+        self.transform = transform
+        self.target_transform = target_transform
+        if mode == 'RGB':
+            self.loader = rgb_loader
+        elif mode == 'L':
+            self.loader = l_loader
+
+    def __getitem__(self, index):
+        path, target = self.imgs[index]
+        # for visda
+        img = self.loader(path)
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target, index
+
+    def __len__(self):
+        return len(self.imgs)
+
+
+def office_load_idx(args):
+    train_bs = args.batch_size
+
+    if args.home == True:
+        ss = args.dset.split('2')[0]
+        tt = args.dset.split('2')[1]
+        if ss == 'a':
+            s = 'Art'
+        elif ss == 'c':
+            s = 'Clipart'
+        elif ss == 'p':
+            s = 'Product'
+        elif ss == 'r':
+            s = 'Real_World'
+
+        if tt == 'a':
+            t = 'Art'
+        elif tt == 'c':
+            t = 'Clipart'
+        elif tt == 'p':
+            t = 'Product'
+        elif tt == 'r':
+            t = 'Real_World'
+
+        s_tr, s_ts = './data/office-home/{}.txt'.format(
+            s), './data/office-home/{}.txt'.format(s)
+
+        txt_src = open(s_tr).readlines()
+        dsize = len(txt_src)
+        tv_size = int(0.8 * dsize)
+        print(dsize, tv_size, dsize - tv_size)
+        s_tr, s_ts = torch.utils.data.random_split(txt_src,
+                                                   [tv_size, dsize - tv_size])
+
+        t_tr, t_ts = './data/office-home/{}.txt'.format(
+            t), './data/office-home/{}.txt'.format(t)
+        prep_dict = {}
+        prep_dict['source'] = image_train()
+        prep_dict['target'] = image_target()
+        prep_dict['test'] = image_test()
+        train_source = ImageList_idx(s_tr, transform=prep_dict['source'])
+        test_source = ImageList_idx(s_ts, transform=prep_dict['source'])
+        train_target = ImageList_idx(open(t_tr).readlines(),
+                                 transform=prep_dict['target'])
+        test_target = ImageList_idx(open(t_ts).readlines(),
+                                transform=prep_dict['test'])
+
+    dset_loaders = {}
+    dset_loaders["source_tr"] = DataLoader(train_source,
+                                           batch_size=train_bs,
+                                           shuffle=True,
+                                           num_workers=args.worker,
+                                           drop_last=False)
+    dset_loaders["source_te"] = DataLoader(
+        test_source,
+        batch_size=train_bs * 2,  #2
+        shuffle=True,
+        num_workers=args.worker,
+        drop_last=False)
+    '''dset_loaders["source_f"] = DataLoader(fish_source,
+                                           batch_size=train_bs ,
+                                           shuffle=True,
+                                           num_workers=args.worker,
+                                           drop_last=False)'''
+    dset_loaders["target"] = DataLoader(train_target,
+                                        batch_size=train_bs,
+                                        shuffle=True,
+                                        num_workers=args.worker,
+                                        drop_last=False)
+    dset_loaders["test"] = DataLoader(
+        test_target,
+        batch_size=train_bs * 3,  #3
+        shuffle=True,
+        num_workers=args.worker,
+        drop_last=False)
+    return dset_loaders
+
+
 def train_target_near(args):
-    dset_loaders = office_load(args)
+    dset_loaders = office_load_idx(args)
     ## set base network
 
     netF = network.ResNet_rgdaE().cuda()
@@ -51,8 +161,8 @@ def train_target_near(args):
     optimizer = optim.SGD([{
         'params': netF.bottle.parameters(),
         'lr': args.lr * 10
-    }, {  
-        'params': netF.em.parameters(), # Training or not does not matter
+    }, {  # Training or not does not matter
+        'params': netF.em.parameters(),
         'lr': args.lr * 10
     },
     {
@@ -66,11 +176,39 @@ def train_target_near(args):
                           weight_decay=5e-4,
                           nesterov=True)
 
+    #optimizer = op_copy(optimizer)
     smax = 100
 
     acc_init = 0
     start = True
-    for epoch in range(args.max_epoch):
+    loader = dset_loaders["target"]
+    num_sample = len(loader.dataset)
+    fea_bank = torch.randn(num_sample, 256)
+    score_bank = torch.randn(num_sample, args.class_num).cuda()
+
+    netF.eval()
+    oldC.eval()
+    with torch.no_grad():
+        iter_test = iter(loader)
+        for i in range(len(loader)):
+            data = iter_test.next()
+            inputs = data[0]
+            indx = data[-1]
+            #labels = data[1]
+            inputs = inputs.cuda()
+            output, _ = netF.forward(inputs, t=1)  
+            output_norm = F.normalize(output)
+            outputs = oldC(output)
+            outputs = nn.Softmax(-1)(outputs)
+            fea_bank[indx] = output_norm.detach().clone().cpu()
+            score_bank[indx] = outputs.detach().clone()  #.cpu()
+            
+
+
+    netF.train()
+    oldC.train()
+
+    for epoch in range(args.max_epoch+10):
         netF.eval()
         oldC.eval()
 
@@ -79,44 +217,19 @@ def train_target_near(args):
         #print("source")
         accs, _ = cal_acc_rgda(dset_loaders['source_te'], netF, oldC,
                                     t=0)  # t=0
+       
         log_str = 'Task: {}, Iter:{}/{}; Accuracy on target = {:.2f}%. Accuracy on source = {:.2f}%'.format(
-            args.dset, epoch, args.max_epoch, acc1 * 100, accs * 100)
+        args.dset, epoch + 1, args.max_epoch, acc1 * 100,
+        accs * 100)
         args.out_file.write(log_str + '\n')
         args.out_file.flush()
         print(log_str)
-
-
-        netF.eval()
-        oldC.eval()
-        loader = dset_loaders["target"]
-        start_test = True
-        with torch.no_grad():
-            iter_test = iter(loader)
-            for i in range(len(loader)):
-                data = iter_test.next()
-                inputs = data[0]
-                #labels = data[1]
-                inputs = inputs.cuda()
-                output, _ = netF.forward(inputs, t=1)  # a^t
-                output_norm=F.normalize(output)
-                outputs = oldC(output)
-                outputs=nn.Softmax(-1)(outputs)
-                if start_test:
-                    fea_bank = output_norm.float()#.cpu()
-                    score_bank = outputs.float()#.cpu()
-                    start_test = False
-                else:
-                    fea_bank = torch.cat((fea_bank, output_norm.float()), 0)
-                    score_bank = torch.cat((score_bank, outputs.float()), 0)
-                    #all_label = torch.cat((all_label, labels.float()), 0)
-            fea_bank = fea_bank.detach().cpu().numpy()
-            score_bank = score_bank.detach()
 
         netF.train()
         oldC.train()
         iter_target = iter(dset_loaders["target"])
 
-        for _, (inputs_target, _) in enumerate(iter_target):
+        for _, (inputs_target, _,indx) in enumerate(iter_target):
             if inputs_target.size(0) == 1:
                 continue
             inputs_target = inputs_target.cuda()
@@ -127,66 +240,76 @@ def train_target_near(args):
 
             output = oldC(output_f)
             softmax_out = nn.Softmax(dim=1)(output)
+            output_re = softmax_out.unsqueeze(1)  # batch x 1 x num_class
 
             with torch.no_grad():
-                fea_bank[indx].fill_(-0.1)  #do not use the current mini-batch in fea_bank
-                output_f_ = F.normalize(output_f).cpu().detach().clone()
-                distance = output_f_ @ fea_bank.t()
-                _, idx_near = torch.topk(distance, dim=-1, largest=True, k=2)
-                score_near = score_bank[idx_near]  
-                score_near = score_near.permute(0, 2, 1)
+                fea_bank[indx].fill_(-0.1)    #do not use the current mini-batch in fea_bank
+                #fea_bank=fea_bank.numpy()
+                output_f_=F.normalize(output_f).cpu().detach().clone()
+                
+                distance = output_f_@fea_bank.T
+                _, idx_near = torch.topk(distance,
+                                        dim=-1,
+                                        largest=True,
+                                        k=3)
+                score_near = score_bank[idx_near]    #batch x 5 x num_class
+                score_near=score_near.permute(0,2,1)
 
                 fea_bank[indx] = output_f_.detach().clone().cpu()
                 score_bank[indx] = softmax_out.detach().clone()  #.cpu()
 
-            output_re=softmax_out.unsqueeze(1) # batch x 1 x num_class
             const=torch.log(torch.bmm(output_re,score_near)).sum(-1)
             loss_const=-torch.mean(const)
 
 
+            im_loss = torch.mean(Entropy(softmax_out))
             msoftmax = softmax_out.mean(dim=0)
-            im_div = torch.sum(msoftmax * torch.log(msoftmax + 1e-5))
-            loss = im_div + loss_const  
+            im_div= torch.sum(msoftmax * torch.log(msoftmax + 1e-5))
+            loss = im_div + loss_const
 
 
             optimizer.zero_grad()
             loss.backward()
             # Compensate embedding gradients
             s=100
-            '''for n, p in netF.em.named_parameters():
+            for n, p in netF.em.named_parameters():
                 num = torch.cosh(
                     torch.clamp(s * p.data, -10, 10)) + 1
                 den = torch.cosh(p.data) + 1
-                p.grad.data *= smax / s * num / den'''
+                p.grad.data *= smax / s * num / den
 
             #print(netF.conv_final)
             for n, p in netF.bottle.named_parameters():
                 if n.find('bias') == -1:
-                    mask_ = ((1 - masks_old)).view(-1, 1).expand(256, 2048).cuda()
+                    mask_ = ((1 - masks_old)).view(-1, 1).expand(256,
+                                                                 2048).cuda()
                     p.grad.data *= mask_
                 else:  #no bias here
                     mask_ = ((1 - masks_old)).squeeze().cuda()
                     p.grad.data *= mask_
 
             for n, p in oldC.named_parameters():
-                if args.layer == 'wn' and n.find('weight_v') != -1:
-                    masks__ = masks_old.view(1, -1).expand(args.class_num, 256)
+                if args.layer=='wn' and n.find('weight_v') != -1:
+                    masks__ = masks_old.view(1, -1).expand(
+                            args.class_num, 256)
                     mask_ = ((1 - masks__)).cuda()
                     #print(n,p.grad.shape)
                     p.grad.data *= mask_
                 if args.layer == 'linear':
-                    masks__ = masks_old.view(1, -1).expand(args.class_num, 256)
+                    masks__ = masks_old.view(1, -1).expand(
+                            args.class_num, 256)
                     mask_ = ((1 - masks__)).cuda()
+                    #print(n,p.grad.shape)
                     p.grad.data *= mask_
 
-                for n, p in netF.bn.named_parameters():
-                    mask_ = ((1 - masks_old)).view(-1).cuda()
-                    p.grad.data *= mask_
+            for n, p in netF.bn.named_parameters():
+                mask_ = ((1 - masks_old)).view(-1).cuda()
+                p.grad.data *= mask_
 
             torch.nn.utils.clip_grad_norm(netF.parameters(), 10000)
 
             optimizer.step()
-       
+
 
     netF.eval()
     oldC.eval()
@@ -194,21 +317,16 @@ def train_target_near(args):
     #print("target")
     acc1, _ = cal_acc_rgda(dset_loaders['test'], netF, oldC, t=1)  #1
     #print("source")
-    accs, _ = cal_acc_rgda(dset_loaders['source_te'], netF, oldC,
-                                t=0)  # t=0
+    accs, _ = cal_acc_rgda(dset_loaders['source_te'], netF, oldC, t=0)  # t=0
     log_str = 'Task: {}, Iter:{}/{}; Accuracy on target = {:.2f}%. Accuracy on source = {:.2f}%'.format(
-        args.dset, epoch + 1, args.max_epoch, acc1 * 100, accs * 100)
+        args.dset, epoch + 1, args.max_epoch, acc1 * 100,
+        accs * 100)
     args.out_file.write(log_str + '\n')
     args.out_file.flush()
     print(log_str)
-    '''if acc_s_tr >= acc_init:
-            acc_init = acc_s_tr
-            best_netF = netF.state_dict()
-            best_netC = oldC.state_dict()'''
-    '''best_netF = netF.state_dict()
-    best_netC = oldC.state_dict()
-    torch.save(best_netF, osp.join(args.output_dir, "F.pt"))
-    torch.save(best_netC, osp.join(args.output_dir, "C.pt"))'''
+       
+
+    
 
 
 
@@ -224,7 +342,7 @@ if __name__ == "__main__":
     parser.add_argument('--t', type=int, default=1, help="target")
     parser.add_argument('--max_epoch',
                         type=int,
-                        default=30,
+                        default=32,
                         help="maximum epoch")
     parser.add_argument('--batch_size',
                         type=int,
@@ -235,6 +353,7 @@ if __name__ == "__main__":
                         default=4,
                         help="number of workers")
     parser.add_argument('--dset', type=str, default='c2a')
+    parser.add_argument('--interval', type=int, default=15)
     parser.add_argument('--lr',
                         type=float,
                         default=0.001,
