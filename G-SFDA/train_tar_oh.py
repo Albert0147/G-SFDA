@@ -16,7 +16,20 @@ import pickle
 from utils import *
 from torch import autograd
 
+def op_copy(optimizer):
+    for param_group in optimizer.param_groups:
+        param_group['lr0'] = param_group['lr']
+    return optimizer
 
+
+def lr_scheduler(optimizer, iter_num, max_iter, gamma=10, power=0.75):
+    decay = (1 + gamma * iter_num / max_iter)**(-power)
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = param_group['lr0'] * decay
+        param_group['weight_decay'] = 1e-3
+        param_group['momentum'] = 0.9
+        param_group['nesterov'] = True
+    return optimizer
 
 def print_args(args):
     s = "==========================================\n"
@@ -161,10 +174,10 @@ def train_target_near(args):
     optimizer = optim.SGD([{
         'params': netF.bottle.parameters(),
         'lr': args.lr * 10
-    }, {  # Training or not does not matter
-        'params': netF.em.parameters(),
-        'lr': args.lr * 10
-    },
+    }, #{  # Training or not does not matter
+    #    'params': netF.em.parameters(),
+    #    'lr': args.lr * 10
+    #},
     {
         'params': netF.bn.parameters(),
         'lr': args.lr * 10
@@ -176,7 +189,7 @@ def train_target_near(args):
                           weight_decay=5e-4,
                           nesterov=True)
 
-    #optimizer = op_copy(optimizer)
+    optimizer = op_copy(optimizer)
     smax = 100
 
     acc_init = 0
@@ -204,126 +217,116 @@ def train_target_near(args):
             score_bank[indx] = outputs.detach().clone()  #.cpu()
             
 
+    max_iter = args.max_epoch * len(dset_loaders["target"])
+    interval_iter = max_iter // args.interval
+    iter_num = 0
 
     netF.train()
     oldC.train()
 
-    for epoch in range(args.max_epoch+10):
-        netF.eval()
-        oldC.eval()
-
-        #print("target")
-        acc1, _ = cal_acc_rgda(dset_loaders['test'], netF, oldC, t=1)  #1
-        #print("source")
-        accs, _ = cal_acc_rgda(dset_loaders['source_te'], netF, oldC,
-                                    t=0)  # t=0
-       
-        log_str = 'Task: {}, Iter:{}/{}; Accuracy on target = {:.2f}%. Accuracy on source = {:.2f}%'.format(
-        args.dset, epoch + 1, args.max_epoch, acc1 * 100,
-        accs * 100)
-        args.out_file.write(log_str + '\n')
-        args.out_file.flush()
-        print(log_str)
-
+    while iter_num < max_iter:
         netF.train()
         oldC.train()
         iter_target = iter(dset_loaders["target"])
 
-        for _, (inputs_target, _,indx) in enumerate(iter_target):
-            if inputs_target.size(0) == 1:
-                continue
-            inputs_target = inputs_target.cuda()
+        try:
+            inputs_test, _, indx = iter_target.next()
+        except:
+            iter_test = iter(dset_loaders["target"])
+            inputs_test, _, indx = iter_target.next()
 
-            output_f, masks = netF(inputs_target, t=1, s=smax)
+        if inputs_test.size(0) == 1:
+            continue
 
-            masks_old = masks
+        inputs_test = inputs_test.cuda()
 
-            output = oldC(output_f)
-            softmax_out = nn.Softmax(dim=1)(output)
-            output_re = softmax_out.unsqueeze(1)  # batch x 1 x num_class
+        iter_num += 1
+        lr_scheduler(optimizer, iter_num=iter_num, max_iter=max_iter) # learning rate decay
+       
+        inputs_target = inputs_test.cuda()
 
-            with torch.no_grad():
-                fea_bank[indx].fill_(-0.1)    #do not use the current mini-batch in fea_bank
-                #fea_bank=fea_bank.numpy()
-                output_f_=F.normalize(output_f).cpu().detach().clone()
-                
-                distance = output_f_@fea_bank.T
-                _, idx_near = torch.topk(distance,
-                                        dim=-1,
-                                        largest=True,
-                                        k=2)
-                score_near = score_bank[idx_near]    #batch x 5 x num_class
-                score_near=score_near.permute(0,2,1)
+        output_f, masks = netF(inputs_target, t=1, s=smax)
+        #print(netF.mask.max())
 
-                fea_bank[indx] = output_f_.detach().clone().cpu()
-                score_bank[indx] = softmax_out.detach().clone()  #.cpu()
+        masks_old = masks
 
-            const=torch.log(torch.bmm(output_re,score_near)).sum(-1)
-            loss_const=-torch.mean(const)
+        output = oldC(output_f)
+        softmax_out = nn.Softmax(dim=1)(output)
+        output_re = softmax_out.unsqueeze(1) 
 
+        with torch.no_grad():
+            fea_bank[indx].fill_(
+                -0.1)  #do not use the current mini-batch in fea_bank
+            #fea_bank=fea_bank.numpy()
+            output_f_ = F.normalize(output_f).cpu().detach().clone()
+            
+            distance = output_f_ @ fea_bank.t()
+            _, idx_near = torch.topk(distance, dim=-1, largest=True, k=2)
+            score_near = score_bank[idx_near]  
+            score_near = score_near.permute(0, 2, 1)
 
-            im_loss = torch.mean(Entropy(softmax_out))
-            msoftmax = softmax_out.mean(dim=0)
-            im_div= torch.sum(msoftmax * torch.log(msoftmax + 1e-5))
-            loss = im_div + loss_const
+            fea_bank[indx] = output_f_.detach().clone().cpu()
+            score_bank[indx] = softmax_out.detach().clone()  #.cpu()
 
+        const = torch.log(torch.bmm(output_re, score_near)).sum(-1)
+        loss_const = -torch.mean(const)
 
-            optimizer.zero_grad()
-            loss.backward()
-            # Compensate embedding gradients
-            s=100
-            for n, p in netF.em.named_parameters():
-                num = torch.cosh(
-                    torch.clamp(s * p.data, -10, 10)) + 1
-                den = torch.cosh(p.data) + 1
-                p.grad.data *= smax / s * num / den
+        msoftmax = softmax_out.mean(dim=0)
+        im_div = torch.sum(msoftmax * torch.log(msoftmax + 1e-5))
+        loss = im_div + loss_const 
 
-            #print(netF.conv_final)
-            for n, p in netF.bottle.named_parameters():
-                if n.find('bias') == -1:
-                    mask_ = ((1 - masks_old)).view(-1, 1).expand(256,
-                                                                 2048).cuda()
-                    p.grad.data *= mask_
-                else:  #no bias here
-                    mask_ = ((1 - masks_old)).squeeze().cuda()
-                    p.grad.data *= mask_
+        optimizer.zero_grad()
+        loss.backward()
+        # Compensate embedding gradients
+        s = 100
+        '''for n, p in netF.em.named_parameters():
+            num = torch.cosh(torch.clamp(s * p.data, -10, 10)) + 1
+            den = torch.cosh(p.data) + 1
+            p.grad.data *= smax / s * num / den'''
 
-            for n, p in oldC.named_parameters():
-                if args.layer=='wn' and n.find('weight_v') != -1:
-                    masks__ = masks_old.view(1, -1).expand(
-                            args.class_num, 256)
-                    mask_ = ((1 - masks__)).cuda()
-                    #print(n,p.grad.shape)
-                    p.grad.data *= mask_
-                if args.layer == 'linear':
-                    masks__ = masks_old.view(1, -1).expand(
-                            args.class_num, 256)
-                    mask_ = ((1 - masks__)).cuda()
-                    #print(n,p.grad.shape)
-                    p.grad.data *= mask_
-
-            for n, p in netF.bn.named_parameters():
-                mask_ = ((1 - masks_old)).view(-1).cuda()
+        #print(netF.conv_final)
+        for n, p in netF.bottle.named_parameters():
+            if n.find('bias') == -1:
+                mask_ = ((1 - masks_old)).view(-1, 1).expand(256, 2048).cuda()
+                p.grad.data *= mask_
+            else:  #no bias here
+                mask_ = ((1 - masks_old)).squeeze().cuda()
                 p.grad.data *= mask_
 
-            torch.nn.utils.clip_grad_norm(netF.parameters(), 10000)
+        for n, p in oldC.named_parameters():
+            if args.layer == 'wn' and n.find('weight_v') != -1:
+                masks__ = masks_old.view(1, -1).expand(args.class_num, 256)
+                mask_ = ((1 - masks__)).cuda()
+                #print(n,p.grad.shape)
+                p.grad.data *= mask_
+            if args.layer == 'linear':
+                masks__ = masks_old.view(1, -1).expand(args.class_num, 256)
+                mask_ = ((1 - masks__)).cuda()
+                #print(n,p.grad.shape)
+                p.grad.data *= mask_
 
-            optimizer.step()
+        for n, p in netF.bn.named_parameters():
+            mask_ = ((1 - masks_old)).view(-1).cuda()
+            p.grad.data *= mask_
 
+        torch.nn.utils.clip_grad_norm(netF.parameters(), 10000)
 
-    netF.eval()
-    oldC.eval()
+        optimizer.step()
 
-    #print("target")
-    acc1, _ = cal_acc_rgda(dset_loaders['test'], netF, oldC, t=1)  #1
-    #print("source")
-    accs, _ = cal_acc_rgda(dset_loaders['source_te'], netF, oldC, t=0)  # t=0
-    log_str = 'Task: {}, Iter:{}/{}; Accuracy on target = {:.2f}%. Accuracy on source = {:.2f}%'.format(
-        args.dset, epoch + 1, args.max_epoch, acc1 * 100,
-        accs * 100)
-    args.out_file.write(log_str + '\n')
-    args.out_file.flush()
-    print(log_str)
+        if iter_num % interval_iter == 0 or iter_num == max_iter:
+            netF.eval()
+            oldC.eval()
+
+            #print("target")
+            acc1, _ = cal_acc_rgda(dset_loaders['test'], netF, oldC, t=1)  #1
+            #print("source")
+            accs, _ = cal_acc_rgda(dset_loaders['source_te'], netF, oldC,
+                                  t=0)  # t=0
+            log_str = 'Task: {}, Iter:{}/{}; Accuracy on target = {:.2f}%. Accuracy on source = {:.2f}%'.format(
+                args.dset, iter_num, max_iter, acc1 * 100, accs * 100)
+            args.out_file.write(log_str + '\n')
+            args.out_file.flush()
+            print(log_str)
        
 
     
