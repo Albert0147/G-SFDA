@@ -251,7 +251,7 @@ def train_target_near(args):
                 _, idx_near = torch.topk(distance,
                                         dim=-1,
                                         largest=True,
-                                        k=3)
+                                        k=2)
                 score_near = score_bank[idx_near]    #batch x 5 x num_class
                 score_near=score_near.permute(0,2,1)
 
