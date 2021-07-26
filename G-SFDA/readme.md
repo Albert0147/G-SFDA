@@ -1,7 +1,7 @@
 # Code (**pytorch 1.3**) for VisDA
 
 ## Dataset preparing
-Download the [VisDA](https://github.com/VisionLearningGroup/taskcv-2017-public/tree/master/classification) dataset. And denote the path of data list in the code.
+Download the [VisDA](https://github.com/VisionLearningGroup/taskcv-2017-public/tree/master/classification) and [Office-Home](https://www.hemanthdv.org/officeHomeDataset.html) dataset. And denote the path of data list in the code.
 
 
 ## Training
