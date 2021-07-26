@@ -1,9 +1,9 @@
 # G-SFDA
-Code (based on **pytorch 1.3**) for our ICCV 2021 paper ['Generalized Source-free Domain Adaptation'](https://sites.google.com/view/g-sfda/g-sfda)
+Code (based on **pytorch 1.3**) for our ICCV 2021 paper ['Generalized Source-free Domain Adaptation'](https://sites.google.com/view/g-sfda/g-sfda).
 
 ## Generalized Source-free Domain Adaptation
 
-In G-SFDA folder you can find the code for G-SFDA setting, on Office-Home and VisDA
+In G-SFDA folder you can find the code for G-SFDA setting, on Office-Home and VisDA.
 
 ## Continual Source-free Domain Adaptation
 
