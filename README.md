@@ -7,8 +7,8 @@ Download the [VisDA](https://github.com/VisionLearningGroup/taskcv-2017-public/t
 
 ## Training
 First train the model on source data with both source and target attention, then adapt the model to target domain in absence of source data. We use embedding layer to automatically produce the domain attention.
-> sh visda.sh\
-> sh office-home.sh
+> sh visda.sh (for VisDA)\
+> sh office-home.sh (for Office-Home)
 
 
 ## Domain Classifier
