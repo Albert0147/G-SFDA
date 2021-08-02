@@ -141,7 +141,7 @@ def train_target(args):
     ## set base network
     netF = network.ResBase(res_name=args.net).cuda()
 
-    netB = network.feat_bootleneck_rgdaE(type=args.classifier,
+    netB = network.feat_bootleneck_sdaE(type=args.classifier,
                                    feature_dim=netF.in_features,
                                    bottleneck_dim=args.bottleneck).cuda()
     netC = network.feat_classifier(type=args.layer,

@@ -122,7 +122,7 @@ def train_source(args):
     ## set base network
     netF = network.ResBase(res_name=args.net).cuda()
 
-    netB = network.feat_bootleneck_rgdaE(type=args.classifier, feature_dim=netF.in_features, bottleneck_dim=args.bottleneck).cuda()
+    netB = network.feat_bootleneck_sdaE(type=args.classifier, feature_dim=netF.in_features, bottleneck_dim=args.bottleneck).cuda()
     netC = network.feat_classifier(type=args.layer, class_num = args.class_num, bottleneck_dim=args.bottleneck).cuda()
 
     param_group = []
@@ -236,7 +236,7 @@ def test_target(args):
     dset_loaders = data_load(args)
     ## set base network
     netF = network.ResBase(res_name=args.net).cuda()
-    netB = network.feat_bootleneck_rgdaE(type=args.classifier, feature_dim=netF.in_features, bottleneck_dim=args.bottleneck).cuda()
+    netB = network.feat_bootleneck_sdaE(type=args.classifier, feature_dim=netF.in_features, bottleneck_dim=args.bottleneck).cuda()
     netC = network.feat_classifier(type=args.layer, class_num = args.class_num, bottleneck_dim=args.bottleneck).cuda()
 
     args.modelpath = args.output_dir_src + '/source_F.pt'

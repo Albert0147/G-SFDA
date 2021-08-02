@@ -142,7 +142,7 @@ def cal_acc_proto(loader, netF, netC,proto):
     return accuracy, accuracy
 
 
-def cal_acc_rgda(loader, netF,netC,t=0):
+def cal_acc_sda(loader, netF,netC,t=0):
     start_test = True
     with torch.no_grad():
         iter_test = iter(loader)

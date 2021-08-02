@@ -29,7 +29,7 @@ def print_args(args):
 def train_source(args):
     dset_loaders = office_load(args)
     ## set base network
-    netF = network.ResNet_rgdaE().cuda()
+    netF = network.ResNet_sdaE().cuda()
     netC = network.feat_classifier(type=args.layer,
                                    class_num=args.class_num,
                                    bottleneck_dim=args.bottleneck).cuda()
@@ -103,8 +103,8 @@ def train_source(args):
 
         netF.eval()
         netC.eval()
-        acc_s_tr1, _ = cal_acc_rgda(dset_loaders['source_te'], netF, netC)
-        acc_s_tr2, _ = cal_acc_rgda(dset_loaders['source_te'], netF, netC, t=1)
+        acc_s_tr1, _ = cal_acc_sda(dset_loaders['source_te'], netF, netC)
+        acc_s_tr2, _ = cal_acc_sda(dset_loaders['source_te'], netF, netC, t=1)
         #acc_s_te, _ = cal_acc_(dset_loaders['source_te'], netF, netB, netC)
         log_str = 'Task: {}, Iter:{}/{}; Accuracy = {:.2f}%({:.2f}%)'.format(
             args.dset, epoch + 1, args.max_epoch, acc_s_tr1 * 100,
@@ -124,7 +124,7 @@ def train_source(args):
 def test_target(args):
     dset_loaders = office_load(args)
     ## set base network
-    netF = network.ResNet_rgdaE().cuda()
+    netF = network.ResNet_sdaE().cuda()
     netC = network.feat_classifier(type=args.layer,
                                    class_num=args.class_num,
                                    bottleneck_dim=args.bottleneck).cuda()
@@ -135,7 +135,7 @@ def test_target(args):
     netF.eval()
     netC.eval()
 
-    acc, _ = cal_acc_rgda(dset_loaders['test'], netF, netC)
+    acc, _ = cal_acc_sda(dset_loaders['test'], netF, netC)
     log_str = 'Task: {}, Accuracy = {:.2f}%'.format(args.dset, acc * 100)
     args.out_file.write(log_str + '\n')
     args.out_file.flush()

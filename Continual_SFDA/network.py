@@ -25,7 +25,7 @@ class feat_classifier(nn.Module):
         x = self.fc(x)
         return x
 
-class ResNet_rgdaE_all(nn.Module):
+class ResNet_sdaE_all(nn.Module):
     def __init__(self):
         super().__init__()
         model_resnet = torchvision.models.resnet50(True)

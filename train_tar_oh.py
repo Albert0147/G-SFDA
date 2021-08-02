@@ -152,7 +152,7 @@ def train_target_near(args):
     dset_loaders = office_load_idx(args)
     ## set base network
 
-    netF = network.ResNet_rgdaE().cuda()
+    netF = network.ResNet_sdaE().cuda()
     oldC = network.feat_classifier(type=args.layer,
                                    class_num=args.class_num,
                                    bottleneck_dim=args.bottleneck).cuda()
@@ -318,9 +318,9 @@ def train_target_near(args):
             oldC.eval()
 
             #print("target")
-            acc1, _ = cal_acc_rgda(dset_loaders['test'], netF, oldC, t=1)  #1
+            acc1, _ = cal_acc_sda(dset_loaders['test'], netF, oldC, t=1)  #1
             #print("source")
-            accs, _ = cal_acc_rgda(dset_loaders['source_te'], netF, oldC,
+            accs, _ = cal_acc_sda(dset_loaders['source_te'], netF, oldC,
                                   t=0)  # t=0
             log_str = 'Task: {}, Iter:{}/{}; Accuracy on target = {:.2f}%. Accuracy on source = {:.2f}%'.format(
                 args.dset, iter_num, max_iter, acc1 * 100, accs * 100)

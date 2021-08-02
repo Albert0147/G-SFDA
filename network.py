@@ -59,9 +59,9 @@ class ResBase(nn.Module):
 
 
 # Instead of manually picking channels, deploying embedding layer to generate random domain attention. Can be fixed or also updatd during adaptation.
-class feat_bootleneck_rgdaE(nn.Module):
+class feat_bootleneck_sdaE(nn.Module):
     def __init__(self, feature_dim, bottleneck_dim=256, type="ori"):
-        super(feat_bootleneck_rgdaE, self).__init__()
+        super(feat_bootleneck_sdaE, self).__init__()
         self.bn = nn.BatchNorm1d(bottleneck_dim, affine=True)
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout(p=0.5)
@@ -101,9 +101,9 @@ class feat_bootleneck_rgdaE(nn.Module):
 
 
 # manually generating domain attention
-class feat_bootleneck_rgda(nn.Module):
+class feat_bootleneck_sda(nn.Module):
     def __init__(self, feature_dim, bottleneck_dim=256, type="ori"):
-        super(feat_bootleneck_rgda, self).__init__()
+        super(feat_bootleneck_sda, self).__init__()
         self.bn = nn.BatchNorm1d(bottleneck_dim, affine=True)
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout(p=0.5)
@@ -157,7 +157,7 @@ class feat_classifier(nn.Module):
 
 
 # Instead of manually picking channels, deploying embedding layer to generate random domain attention. Can be fixed or also updatd during adaptation.
-class ResNet_rgdaE(nn.Module):
+class ResNet_sdaE(nn.Module):
     def __init__(self):
         super().__init__()
         model_resnet = torchvision.models.resnet50(True)

@@ -41,7 +41,7 @@ class CrossEntropyLabelSmooth(nn.Module):
         return loss
 
 
-def cal_acc_rgda(loader, netF,netC,t=0):
+def cal_acc_sda(loader, netF,netC,t=0):
     start_test = True
     with torch.no_grad():
         iter_test = iter(loader)

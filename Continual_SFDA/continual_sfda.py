@@ -121,7 +121,7 @@ def lr_scheduler(optimizer, iter_num, max_iter, gamma=10, power=0.75):
 
 def train_source(args,dset_loaders):
     ## set base network
-    netF = network.ResNet_rgdaE_all().cuda()
+    netF = network.ResNet_sdaE_all().cuda()
     netC = network.feat_classifier(type=args.layer,
                                    class_num=args.class_num,
                                    bottleneck_dim=args.bottleneck).cuda()
@@ -207,8 +207,8 @@ def train_source(args,dset_loaders):
 
         netF.eval()
         netC.eval()
-        acc_s_tr1, _ = cal_acc_rgda(dset_loaders['0ts'], netF, netC)
-        acc_s_tr2, _ = cal_acc_rgda(dset_loaders['0ts'], netF, netC,t=1)
+        acc_s_tr1, _ = cal_acc_sda(dset_loaders['0ts'], netF, netC)
+        acc_s_tr2, _ = cal_acc_sda(dset_loaders['0ts'], netF, netC,t=1)
         #acc_s_te, _ = cal_acc_(dset_loaders['source_te'], netF, netB, netC)
         log_str = 'Task: {}, Iter:{}/{}; Accuracy = {:.2f}%({:.2f}%)'.format(
             args.dset, epoch + 1, args.max_epoch, acc_s_tr1 * 100,
@@ -306,7 +306,7 @@ def train_target_near(args,t,netF,oldC,dset_loader,mask_old=None):
 
     netF.eval()
     oldC.eval()
-    acc1, _ = cal_acc_rgda(dset_loaders['0ts'], netF, oldC, t=0)  #1
+    acc1, _ = cal_acc_sda(dset_loaders['0ts'], netF, oldC, t=0)  #1
     print(acc1)
 
     netF.train()
@@ -421,10 +421,10 @@ def train_target_near(args,t,netF,oldC,dset_loader,mask_old=None):
             oldC.eval()
 
             #print("target")
-            acc1, _ = cal_acc_rgda(dset_loaders['0ts'], netF, oldC, t=0)  #1
-            acc2, _ = cal_acc_rgda(dset_loaders[1], netF, oldC, t=1)  #1
-            acc3, _ = cal_acc_rgda(dset_loaders[2], netF, oldC, t=2)  #1
-            acc4, _ = cal_acc_rgda(dset_loaders[3], netF, oldC, t=3)  #1
+            acc1, _ = cal_acc_sda(dset_loaders['0ts'], netF, oldC, t=0)  #1
+            acc2, _ = cal_acc_sda(dset_loaders[1], netF, oldC, t=1)  #1
+            acc3, _ = cal_acc_sda(dset_loaders[2], netF, oldC, t=2)  #1
+            acc4, _ = cal_acc_sda(dset_loaders[3], netF, oldC, t=3)  #1
 
             #print("source")
             log_str = 'Task: {}, Iter:{}/{}; Accuracy on 4 domains = {:.2f}%|{:.2f}%|{:.2f}%|{:.2f}%.'.format(
