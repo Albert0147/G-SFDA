@@ -1,5 +1,5 @@
 # G-SFDA
-Code (based on **pytorch 1.3**) for our ICCV 2021 paper 'Generalized Source-free Domain Adaptation'. [[project]](https://sites.google.com/view/g-sfda/g-sfda) [[paper]](https://arxiv.org/abs/2108.01614).
+Code (based on **pytorch 1.3, please check the 'requirements.txt' for reproducing the results**) for our ICCV 2021 paper 'Generalized Source-free Domain Adaptation'. [[project]](https://sites.google.com/view/g-sfda/g-sfda) [[paper]](https://arxiv.org/abs/2108.01614).
 
 ## Dataset preparing
 Download the [VisDA](https://github.com/VisionLearningGroup/taskcv-2017-public/tree/master/classification) and [Office-Home](https://www.hemanthdv.org/officeHomeDataset.html) (use our provided image list files) dataset. And denote the path of data list in the code.
