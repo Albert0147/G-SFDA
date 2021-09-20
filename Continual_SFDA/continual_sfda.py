@@ -440,11 +440,11 @@ def train_target_near(args,t,netF,oldC,dset_loader,mask_old=None):
     
         torch.save(best_netF, osp.join(args.output_dir, "F_TBD.pt"))
         torch.save(best_netC, osp.join(args.output_dir, "C_TBD.pt"))'''
-    '''if t ==1:
+    if t ==1:
         mask_old = mask_s
         mask_old[mask_old<masks]=masks[mask_old<masks]
     else:
-        mask_old[mask_old<masks]=masks[mask_old<masks]'''
+        mask_old[mask_old<masks]=masks[mask_old<masks]
 
     return mask_old, netF, oldC
 
