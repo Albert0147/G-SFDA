@@ -1,7 +1,7 @@
 # [Generalized Source-free Domain Adaptation (ICCV 2021)](https://arxiv.org/abs/2108.01614)
 Code (based on **pytorch 1.3, cuda 10.0, please check the 'requirements.txt' for reproducing the results**) for our ICCV 2021 paper 'Generalized Source-free Domain Adaptation'. [[project]](https://sites.google.com/view/g-sfda/g-sfda) [[paper]](https://arxiv.org/abs/2108.01614).
 
-**2021.09: Please also check our another source-free DA [paper](https://sites.google.com/view/trustyourgoodfriend-neurips21/) in NeurIPS 2021 which further improves the local neighborhoods clustering for adaptation.**
+**2021.09: Please also check our another source-free DA [paper](https://sites.google.com/view/trustyourgoodfriend-neurips21/) in NeurIPS 2021 which further improves the local neighborhood clustering for adaptation.**
 
 ## Dataset preparing
 Download the [VisDA](https://github.com/VisionLearningGroup/taskcv-2017-public/tree/master/classification) and [Office-Home](https://www.hemanthdv.org/officeHomeDataset.html) (use our provided image list files) dataset. And denote the path of data list in the code.
