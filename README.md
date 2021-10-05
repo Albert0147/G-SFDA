@@ -10,7 +10,7 @@ First train the model on source data with both source and target attention, then
 > sh visda.sh (for VisDA)\
 > sh office-home.sh (for Office-Home)
 
-We provide the training log files, source model and target model on VisDA in this [link](https://drive.google.com/drive/folders/1QrK_oDWbSAXdLzICUhSc2sdrxlUcXF5n?usp=sharing). You can directly start the source-free adaptation from our source model to reproduce the results.
+**Checkpoints** We provide the training log files, source model and target model on VisDA in this [link](https://drive.google.com/drive/folders/1QrK_oDWbSAXdLzICUhSc2sdrxlUcXF5n?usp=sharing). You can directly start the source-free adaptation from our source model to reproduce the results.
 
 ## Domain Classifier
 The file 'domain_classifier.ipynb' contains the code for training domain classifier and evaluating the model with estimated domain ID (on VisDA).
