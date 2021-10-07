@@ -16,3 +16,7 @@ First train the model on source data with both source and target attention, then
 
 ## Domain Classifier
 The file 'domain_classifier.ipynb' contains the code for training domain classifier and evaluating the model with estimated domain ID (on VisDA).
+
+### Acknowledgement
+
+The codes are based on [SHOT (ICML 2020, also source-free)](https://github.com/tim-learn/SHOT).
